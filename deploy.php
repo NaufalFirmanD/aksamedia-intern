@@ -157,64 +157,72 @@ CACHE_STORE=file
         break;
 
     case 'setup':
-        // Run artisan commands via PHP include
-        echo "--- Loading Laravel ---\n";
+        // Run artisan commands via PHP include  
+        $step = $_GET['step'] ?? 'key';
+        echo "--- Setup Step: $step ---\n";
         flush();
+        ob_flush();
 
-        // Bootstrap Laravel
+        error_reporting(E_ALL);
+        ini_set('display_errors', '1');
+
         chdir($html);
         $_SERVER['argv'] = ['artisan'];
         
         if (!file_exists("$html/vendor/autoload.php")) {
             echo "ERROR: vendor/autoload.php not found!\n";
-            echo "Make sure action=copy completed successfully.\n";
             break;
         }
 
+        echo "Loading autoload...\n"; flush(); ob_flush();
         require "$html/vendor/autoload.php";
+        
+        echo "Loading app...\n"; flush(); ob_flush();
         $app = require_once "$html/bootstrap/app.php";
+        
+        echo "Making kernel...\n"; flush(); ob_flush();
         $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+        
+        echo "Laravel loaded OK!\n\n"; flush(); ob_flush();
 
-        echo "--- Generate Key ---\n";
-        flush();
-        $kernel->call('key:generate', ['--force' => true]);
-        echo $kernel->output();
-
-        echo "--- Run Migrations ---\n";
-        flush();
-        $kernel->call('migrate', ['--force' => true]);
-        echo $kernel->output();
-
-        echo "--- Run Seeders ---\n";
-        flush();
-        $kernel->call('db:seed', ['--force' => true]);
-        echo $kernel->output();
-
-        echo "--- Storage Link ---\n";
-        $target = "$html/storage/app/public";
-        $link = "$html/public/storage";
-        if (!file_exists($link)) {
-            if (@symlink($target, $link)) {
-                echo "Storage link created\n";
-            } else {
-                echo "Symlink failed (normal on shared hosting)\n";
-            }
-        } else {
-            echo "Storage link already exists\n";
+        switch ($step) {
+            case 'key':
+                echo "--- Generate Key ---\n";
+                $kernel->call('key:generate', ['--force' => true]);
+                echo $kernel->output();
+                echo "\nNext: ?action=setup&step=migrate\n";
+                break;
+            case 'migrate':
+                echo "--- Run Migrations ---\n";
+                $kernel->call('migrate', ['--force' => true]);
+                echo $kernel->output();
+                echo "\nNext: ?action=setup&step=seed\n";
+                break;
+            case 'seed':
+                echo "--- Run Seeders ---\n";
+                $kernel->call('db:seed', ['--force' => true]);
+                echo $kernel->output();
+                echo "\nNext: ?action=setup&step=link\n";
+                break;
+            case 'link':
+                echo "--- Storage Link ---\n";
+                $target = "$html/storage/app/public";
+                $link = "$html/public/storage";
+                if (!file_exists($link)) {
+                    @symlink($target, $link) ? print("Created\n") : print("Symlink failed\n");
+                } else {
+                    echo "Already exists\n";
+                }
+                echo "--- Cache ---\n";
+                $kernel->call('config:cache');
+                echo $kernel->output();
+                $kernel->call('route:cache');
+                echo $kernel->output();
+                echo "\n=== ALL SETUP DONE! ===\n";
+                echo "Test: http://aksa.id/api/login\n";
+                echo "Next: ?action=frontend\n";
+                break;
         }
-
-        echo "--- Cache Config ---\n";
-        flush();
-        $kernel->call('config:cache');
-        echo $kernel->output();
-
-        echo "--- Cache Routes ---\n";
-        flush();
-        $kernel->call('route:cache');
-        echo $kernel->output();
-
-        echo "\n=== SETUP COMPLETE! ===\n";
-        echo "Test API: http://aksa.id/api/login\n";
         break;
 
     case 'frontend':
