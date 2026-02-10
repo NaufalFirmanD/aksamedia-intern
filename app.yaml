@@ -1,0 +1,16 @@
+kind: wasmer.io/App.v0
+name: aksamedia-intern
+owner: NaufalFirmanD
+package: NaufalFirmanD/aksamedia-intern
+public: true
+services:
+  - name: backend
+    image: nixpacks
+    source: ./backend
+    capabilities:
+      instaboot: true
+    env:
+      APP_ENV: production
+      # APP_KEY will be set in the Wasmer dashboard secrets
+      DB_CONNECTION: mysql
+      PORT: 8080
