@@ -19,7 +19,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://aksaintern.netlify.app'],
+    'allowed_origins' => [
+        'https://aksamedia-intern-tawny.vercel.app',
+        'https://aksaintern.netlify.app',
+    ],
 
     'allowed_origins_patterns' => [],
 
